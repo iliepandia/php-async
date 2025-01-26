@@ -2,7 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Clue\React\Stdio\Stdio;
+use GuzzleHttp\Client;
+use GuzzleHttp\Promise\Utils;
 use Illuminate\Console\Command;
 use React\EventLoop\Loop;
 use Symfony\Component\Console\Cursor;
@@ -51,10 +52,70 @@ class RunSimulation extends Command
             $this->output->write("  <gray>" . $log . "</gray>\n");
         }
     }
+
+    public function handle()
+    {
+        $client = new Client([
+           'base_uri' => 'http://localhost:9010/'
+        ]);
+
+        $promise = $client->getAsync("/", [
+            'query' => [
+                'size' => 10,
+                'chunks' => 10,
+                'delay' => 500,
+            ],
+            'progress' => function($downloadTotal,
+                                   $downloadedBytes,
+                                   $uploadTotal,
+                                   $uploadedBytes){
+                $this->line("Progress 1... $downloadedBytes of $downloadTotal ... $uploadedBytes of $uploadTotal");
+            },
+        ]);
+
+        $promise2 = $client->getAsync("/", [
+            'query' => [
+                'size' => 20,
+                'chunks' => 10,
+                'delay' => 1000,
+            ],
+            'progress' => function($downloadTotal,
+                                   $downloadedBytes,
+                                   $uploadTotal,
+                                   $uploadedBytes){
+                $this->line("Progress 2... $downloadedBytes of $downloadTotal ... $uploadedBytes of $uploadTotal");
+            },
+        ]);
+
+        $promise3 = $client->getAsync("/", [
+            'query' => [
+                'size' => 3,
+                'chunks' => 20,
+                'delay' => 300,
+            ],
+            'progress' => function($downloadTotal,
+                                   $downloadedBytes,
+                                   $uploadTotal,
+                                   $uploadedBytes){
+                $this->line("Progress 3... $downloadedBytes of $downloadTotal ... $uploadedBytes of $uploadTotal");
+            },
+        ]);
+
+        $promises = [
+            'A' => $promise,
+            'B' => $promise2,
+            'C' => $promise3,
+        ];
+        $responses = Utils::unwrap($promises);
+
+        foreach( $responses as $key => $response){
+            dump($response->getBody()->getContents());
+        }
+    }
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function demoDisplay()
     {
         $loop = Loop::get();
         $totalBars = 10;
