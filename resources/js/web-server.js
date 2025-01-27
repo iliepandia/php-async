@@ -13,8 +13,9 @@ const server = http.createServer(async (req, res) => {
     const delayBetweenChunks = parseInt(queryParams.get('delay')||500);
     const chunkNumbers = parseInt(queryParams.get('chunks')||100);
     const fileLines = parseInt(queryParams.get('size')||1_000);
+    const firstByteDelay = parseInt(queryParams.get('fbd')||1_000);
 
-    console.log( `Responding to request. Delay: ${delayBetweenChunks} Chunks:${chunkNumbers} Lines:${fileLines}`);
+    console.log( `Responding to request. Delay: ${delayBetweenChunks} Chunks:${chunkNumbers} Lines:${fileLines} FBD:${firstByteDelay}`);
 
     const responseBody = "Start!\n" + Array(fileLines).fill("Hello world. 🌍\n").join("")  + "\nThe End\n"; // Total response content
     const responseBuffer = Buffer.from( responseBody, 'utf-8');
@@ -24,6 +25,8 @@ const server = http.createServer(async (req, res) => {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader("Content-Length", responseLength);
+
+    await new Promise((resolve)=>setTimeout(resolve,firstByteDelay));
 
     for(let offset=0; offset<responseBuffer.length; offset += chunkSize ){
         const chunk = responseBuffer.slice(offset,offset+chunkSize);

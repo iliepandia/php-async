@@ -28,6 +28,9 @@ class RunSimulation extends Command
 
     protected array $requests = [];
 
+    protected ?int $width;
+    protected ?int $height;
+
     protected array $logs = [];
 
     protected function logMessage($message){
@@ -50,21 +53,30 @@ class RunSimulation extends Command
                     'size' => 10,
                     'chunks' => 10,
                     'delay' => 500,
+                    'fbd' => 6_000,
                 ],
                 [
                     'size' => 20,
                     'chunks' => 10,
                     'delay' => 1000,
+                    'fbd' => 5_000,
                 ],
                 [
                     'size' => 20_000,
                     'chunks' => 14,
+                    'delay' => 300,
+                    'fbd' => 10_000,
+                ],
+                [
+                    'size' => 3,
+                    'chunks' => 20,
                     'delay' => 300,
                 ],
                 [
                     'size' => 3,
                     'chunks' => 20,
                     'delay' => 300,
+                    'fbd' => 1_500,
                 ],
                 [
                     'size' => 30,
@@ -75,6 +87,7 @@ class RunSimulation extends Command
                     'size' => 30,
                     'chunks' => 200,
                     'delay' => 50,
+                    'fbd' => 500,
                 ],
             ],
         ];
@@ -95,13 +108,15 @@ class RunSimulation extends Command
                     'size' => $configuration['size'],
                     'chunks' => $configuration['chunks'],
                     'delay' => $configuration['delay'],
+                    'fbd' => $configuration['fbd'] ?? null,
                 ],
                 'progress' => function($downloadTotal, $downloadedBytes) use ($id){
-                    $this->requests[$id]['status'] = 'receiving';
                     if($downloadTotal == 0 || $downloadedBytes == 0 ){
                         $this->requests[$id]['progress'] = 0;
+                        $this->requests[$id]['status'] = 'waiting';
                     }else{
                         $this->requests[$id]['progress'] = ceil( floatval($downloadedBytes) / $downloadTotal  * 100 );
+                        $this->requests[$id]['status'] = 'receiving';
                     }
                     if($this->requests[$id]['progress'] == 100 ){
                         $this->requests[$id]['status'] = 'complete';
@@ -113,6 +128,7 @@ class RunSimulation extends Command
             $this->logMessage("Initialized request: {$id}...");
             $promises []= $promise;
         }
+        $start = time();
         $this->initDisplay();
         $responses = Utils::unwrap($promises);
         foreach ($this->requests as $request){
@@ -120,6 +136,8 @@ class RunSimulation extends Command
             $this->logMessage("Request {$request['id']} is complete.");
         }
         $this->updateScreen();
+        $end = time();
+        $this->line( "Completed in: <info>" . ($end - $start) . "</info> seconds"  );
     }
 
     protected function updateScreen() : void
@@ -135,18 +153,26 @@ class RunSimulation extends Command
         foreach ($this->requests as $index => $request) {
             $value = $request['progress'];
             $status = strtoupper(substr($request['status'], 0, 1));
-            $bar = str_repeat('=', (int)($value / 1)) . str_repeat(' ', 100 - (int)($value / 1));
+            $barLength = $this->width - strlen( "Req xx: (C) [] 100%   ");
+            $progressLength = ceil( $value / 100.0 * $barLength );
+            $bar = str_repeat('=', $progressLength) . str_repeat(' ', $barLength-$progressLength );
             $style = "complete";
-            if($value < 100){
+            if($request['status'] != 'complete'){
                 $style = "gray";
             }
-            $this->output->write(sprintf("<$style>   Req %2d: (%s) [%s] %d%%</$style>\n", $request['id'], $status, $bar, $value));
+            if($status == 'W'){
+                $status = "<comment>$status</comment>";
+            }
+            if($status == 'R'){
+                $status = "<info>$status</info>";
+            }
+            $this->output->write(sprintf("<$style>   Req %2d: [%s] [%s] %d%%</$style>\n", $request['id'], $status, $bar, $value));
         }
 
         // Draw logs below progress bars
         $logs = $this->logs;
         $cursor->moveToPosition(1, $totalBars + 2 );
-        $this->output->write("<complete>Logs:</complete>\n");
+        $this->output->write("<info>Logs:</info>\n");
         foreach (array_slice($logs, -10) as $log) { // Show the last 10 logs
             $this->output->write("  <gray>" . $log . "</gray>");
             $cursor->clearLineAfter();
@@ -159,8 +185,8 @@ class RunSimulation extends Command
     {
         //Get the size of the terminal - I might use this to shrink the progress bars
         $terminal = new Terminal();
-        $width = $terminal->getWidth();
-        $height = $terminal->getHeight();
+        $this->width = $terminal->getWidth();
+        $this->height = $terminal->getHeight();
 
         //Clear up the console screen
         $cursor = new Cursor($this->output);
