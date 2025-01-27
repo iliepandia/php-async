@@ -26,12 +26,56 @@ class RunSimulation extends Command
      */
     protected $description = 'Command description';
 
-    protected array $requests = [];
-
     protected ?int $width;
     protected ?int $height;
 
     protected array $logs = [];
+
+    protected function executeAsync($client, $configuration, $monitorCollection, $logs): void
+    {
+        $promises = [];
+        foreach ($configuration['requests'] as $key => $requestConfiguration) {
+            $requestMonitor = new RequestMonitor($key + 1, 'waiting', 0);
+            $monitorCollection->addMonitor($requestMonitor);
+            $id = $requestMonitor->id;
+            $this->requests[$requestMonitor->id] = $requestMonitor;
+
+            $promise = $client->getAsync("/", [
+                'query' => $requestConfiguration,
+                'progress' => function ($downloadTotal, $downloadedBytes) use ($id, $monitorCollection, $logs) {
+                    //Update the progress tracker for the request
+                    $monitorCollection->updateMonitor($id, $downloadTotal, $downloadedBytes);
+                    $logs->addLog("Received progress report for request $id: {$this->requests[$id]->progress}%...");
+                },
+            ]);
+
+            $logs->addLog("Initialized request: {$id}...");
+            $promises [] = $promise;
+        }
+        $responses = Utils::unwrap($promises);
+    }
+
+    protected function executeSync($client, $configuration, $monitorCollection, $logs): void
+    {
+        $responses = [];
+        foreach ($configuration['requests'] as $key => $requestConfiguration) {
+            $requestMonitor = new RequestMonitor($key + 1, 'waiting', 0);
+            $monitorCollection->addMonitor($requestMonitor);
+            $id = $requestMonitor->id;
+            $this->requests[$requestMonitor->id] = $requestMonitor;
+
+            $logs->addLog("Sending request: {$id}...");
+            $response = $client->get("/", [
+                'query' => $requestConfiguration,
+                'progress' => function ($downloadTotal, $downloadedBytes) use ($id, $monitorCollection, $logs) {
+                    //Update the progress tracker for the request
+                    $monitorCollection->updateMonitor($id, $downloadTotal, $downloadedBytes);
+                    $logs->addLog("Received progress report for request $id: {$this->requests[$id]->progress}%...");
+                },
+            ]);
+            $logs->addLog("Request: {$id} complete.");
+        }
+    }
 
     public function handle()
     {
@@ -86,8 +130,6 @@ class RunSimulation extends Command
             ],
         ];
 
-        $this->requests = [];
-
         $terminalDisplay = new MonitorCollectionDisplay($this->output);
 
         $monitorCollection = new MonitorCollection();
@@ -96,32 +138,14 @@ class RunSimulation extends Command
         $logs = new LogsCollection();
         $logs->addListener($terminalDisplay);
 
-        $promises = [];
-        foreach ($configuration['requests'] as $key => $configuration) {
-            $requestMonitor = new RequestMonitor($key + 1, 'waiting', 0);
-            $monitorCollection->addMonitor($requestMonitor);
-            $id = $requestMonitor->id;
-            $this->requests[$requestMonitor->id] = $requestMonitor;
-
-            $promise = $client->getAsync("/", [
-                'query' => [
-                    'size' => $configuration['size'],
-                    'chunks' => $configuration['chunks'],
-                    'delay' => $configuration['delay'],
-                    'fbd' => $configuration['fbd'] ?? null,
-                ],
-                'progress' => function ($downloadTotal, $downloadedBytes) use ($id, $monitorCollection, $logs) {
-                    //Update the progress tracker for the request
-                    $monitorCollection->updateMonitor($id, $downloadTotal, $downloadedBytes);
-                    $logs->addLog("Received progress report for request $id: {$this->requests[$id]->progress}%...");
-                },
-            ]);
-            
-            $logs->addLog("Initialized request: {$id}...");
-            $promises [] = $promise;
-        }
         $start = time();
-        $responses = Utils::unwrap($promises);
+
+        if($configuration['type'] == 'async'){
+            $this->executeAsync($client, $configuration, $monitorCollection, $logs);
+        }else{
+            $this->executeSync($client, $configuration, $monitorCollection, $logs);
+        }
+
         $logs->addLog("All requests are complete.");
         $end = time();
         $this->line("Completed in: <info>" . ($end - $start) . "</info> seconds");
