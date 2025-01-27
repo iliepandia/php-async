@@ -79,7 +79,7 @@ class RunSimulation extends Command
                 ],
                 [
                     'size' => 30,
-                    'chunks' => 200,
+                    'chunks' => 90,
                     'delay' => 50,
                     'fbd' => 500,
                 ],
@@ -120,9 +120,7 @@ class RunSimulation extends Command
         }
         $start = time();
         $responses = Utils::unwrap($promises);
-        foreach ($this->requests as $request) {
-            $logs->addLog("Request {$request->id} is complete.");
-        }
+        $logs->addLog("All requests are complete.");
         $end = time();
         $this->line("Completed in: <info>" . ($end - $start) . "</info> seconds");
     }

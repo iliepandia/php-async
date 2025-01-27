@@ -13,18 +13,25 @@ class LogsCollection
      */
     public array $listeners = [];
 
-    public function addLog( mixed $log ) : void{
-        $this->logs []= is_string($log) ? $log : json_encode($log);
+    public function addLog(mixed $log): void
+    {
+        $this->logs [] = is_string($log) ? $log : json_encode($log);
         //Keep only last 20 logs
-        $this->logs = array_slice($this->logs, -20 );
+        $this->logs = array_slice($this->logs, -20);
 
-        foreach ($this->listeners as $listener){
+        $this->updateObservers();
+    }
+
+    protected function updateObservers(): void
+    {
+        foreach ($this->listeners as $listener) {
             $listener->logsUpdated($this->logs);
         }
     }
 
-    public function addListener(LogsListener $listener):void{
-        $this->listeners []= $listener;
+    public function addListener(LogsListener $listener): void
+    {
+        $this->listeners [] = $listener;
     }
 
 }

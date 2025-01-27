@@ -17,7 +17,8 @@ class MonitorCollectionDisplay implements RequestMonitorListener, LogsListener
 
     public int $width = 0;
     public int $height = 0;
-    public function __construct( public OutputStyle $output )
+
+    protected function initializeTerminalDisplay(): void
     {
         //Get the size of the terminal - I might use this to shrink the progress bars
         $terminal = new Terminal();
@@ -30,51 +31,69 @@ class MonitorCollectionDisplay implements RequestMonitorListener, LogsListener
 
         //Define some styles for the console printer
         $style = new OutputFormatterStyle('black', 'default', ['bold']);
-        $this->output->getFormatter()->setStyle('gray', $style );
+        $this->output->getFormatter()->setStyle('gray', $style);
         $style = new OutputFormatterStyle('white', 'default', ['bold']);
-        $this->output->getFormatter()->setStyle('complete', $style );
+        $this->output->getFormatter()->setStyle('complete', $style);
+    }
 
+    public function __construct(public OutputStyle $output)
+    {
+        $this->initializeTerminalDisplay();
     }
 
     public function progressUpdated(MonitorCollection $monitorCollection): void
     {
         $this->monitorCollection = $monitorCollection;
-        $this->updateTerminal();
+        $this->updateTerminalDisplay();
     }
 
-    protected function updateTerminal(): void{
-        $totalBars = $this->monitorCollection ? count($this->monitorCollection->requestMonitors) : 0 ;
-
-        $cursor = new Cursor($this->output);
-
-        $cursor->moveToPosition(1, 0 );
-        $this->output->write( "<complete>Requests Progress:</complete>\n");
-
-        // Draw progress bars
-        foreach ($this->monitorCollection?->requestMonitors??[] as $requestMonitor) {
-            $value = $requestMonitor->progress;
-            $status = strtoupper(substr($requestMonitor->status, 0, 1));
-            $barLength = $this->width - strlen( "Req xx: (C) [] 100%   ");
-            $progressLength = ceil( $value / 100.0 * $barLength );
-            $bar = str_repeat('=', $progressLength) . str_repeat(' ', $barLength-$progressLength );
-            $style = "complete";
-            if($requestMonitor->status != 'complete'){
-                $style = "gray";
-            }
-            if($status == 'W'){
-                $status = "<comment>$status</comment>";
-            }
-            if($status == 'R'){
-                $status = "<info>$status</info>";
-            }
-            $this->output->write(sprintf("<$style>   Req %2d: [%s] [%s] %d%%</$style>\n", $requestMonitor->id, $status, $bar, $value));
+    protected function getStatusChar($requestMonitor): string
+    {
+        $status = strtoupper(substr($requestMonitor->status, 0, 1));
+        if ($status == 'W') {
+            $status = "<comment>$status</comment>";
+        }
+        if ($status == 'R') {
+            $status = "<info>$status</info>";
         }
 
-        // Draw logs below progress bars
+        return $status;
+    }
+
+    protected function getProgressBar($value): string
+    {
+        //We need to reserve room for all these chars.
+        $reservedSpace = strlen("  Req xx: (C) [] 100%   ");
+
+        $barLength = $this->width - $reservedSpace;
+
+        $progressLength = ceil($value / 100.0 * $barLength);
+
+        return str_repeat('=', $progressLength) .
+            str_repeat('.', $barLength - $progressLength);
+    }
+
+    protected function drawProgressBars(): void
+    {
+        $this->output->write("<complete>Requests Progress:</complete>\n");
+
+        // Draw progress bars
+        foreach ($this->monitorCollection?->requestMonitors ?? [] as $requestMonitor) {
+            $value = $requestMonitor->progress;
+            $status = $this->getStatusChar($requestMonitor);
+            $bar = $this->getProgressBar($value);
+            $style = "complete";
+            if ($requestMonitor->status != 'complete') {
+                $style = "gray";
+            }
+            $this->output->write(sprintf("<$style>  Req %2d: [%s] [%s] %d%%</$style>\n",
+                $requestMonitor->id, $status, $bar, $value));
+        }
+    }
+
+    protected function drawLogs(Cursor $cursor): void
+    {
         $logs = $this->logs ?? [];
-        $cursor->moveToPosition(1, $totalBars + 1 );
-        $cursor->clearLineAfter();
-        $cursor->moveToPosition(1, $totalBars + 2 );
         $this->output->write("<info>Logs:</info>");
         $cursor->clearLineAfter();
         $cursor->moveDown();
@@ -85,11 +104,34 @@ class MonitorCollectionDisplay implements RequestMonitorListener, LogsListener
             $cursor->moveDown();
             $cursor->moveToColumn(0);
         }
+
+    }
+
+    protected function updateTerminalDisplay(): void
+    {
+        $totalBars = $this->monitorCollection ? count($this->monitorCollection->requestMonitors) : 0;
+
+        $cursor = new Cursor($this->output);
+
+        //Hide cursor to avoid flickering...
+        $cursor->hide();
+
+        $cursor->moveToPosition(1, 0);
+
+        $this->drawProgressBars();
+
+        // Draw logs below progress bars
+        $cursor->moveToPosition(1, $totalBars + 1);
+        $cursor->clearLineAfter();
+        $cursor->moveToPosition(1, $totalBars + 2);
+        $this->drawLogs($cursor);
+
+        $cursor->show();
     }
 
     public function logsUpdated(array $logs): void
     {
         $this->logs = $logs;
-        $this->updateTerminal();
+        $this->updateTerminalDisplay();
     }
 }
