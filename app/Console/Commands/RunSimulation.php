@@ -102,6 +102,7 @@ class RunSimulation extends Command
             $monitorCollection->addMonitor($requestMonitor);
             $id = $requestMonitor->id;
             $this->requests[$requestMonitor->id] = $requestMonitor;
+
             $promise = $client->getAsync("/", [
                 'query' => [
                     'size' => $configuration['size'],
@@ -115,6 +116,7 @@ class RunSimulation extends Command
                     $logs->addLog("Received progress report for request $id: {$this->requests[$id]->progress}%...");
                 },
             ]);
+            
             $logs->addLog("Initialized request: {$id}...");
             $promises [] = $promise;
         }
