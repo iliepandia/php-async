@@ -31,7 +31,7 @@ class RunSimulation extends Command
 
     protected array $logs = [];
 
-    protected function executeAsync($client, $configuration, $monitorCollection, $logs): void
+    protected function executeAsync($client, $configuration, $monitorCollection, $logs): array
     {
         $promises = [];
         foreach ($configuration['requests'] as $key => $requestConfiguration) {
@@ -52,10 +52,10 @@ class RunSimulation extends Command
             $logs->addLog("Initialized request: {$id}...");
             $promises [] = $promise;
         }
-        $responses = Utils::unwrap($promises);
+        return Utils::unwrap($promises);
     }
 
-    protected function executeSync($client, $configuration, $monitorCollection, $logs): void
+    protected function executeSync($client, $configuration, $monitorCollection, $logs): array
     {
         $responses = [];
         foreach ($configuration['requests'] as $key => $requestConfiguration) {
@@ -65,7 +65,7 @@ class RunSimulation extends Command
             $this->requests[$requestMonitor->id] = $requestMonitor;
 
             $logs->addLog("Sending request: {$id}...");
-            $response = $client->get("/", [
+            $responses []= $client->get("/", [
                 'query' => $requestConfiguration,
                 'progress' => function ($downloadTotal, $downloadedBytes) use ($id, $monitorCollection, $logs) {
                     //Update the progress tracker for the request
@@ -75,6 +75,8 @@ class RunSimulation extends Command
             ]);
             $logs->addLog("Request: {$id} complete.");
         }
+
+        return $responses;
     }
 
     public function handle()
