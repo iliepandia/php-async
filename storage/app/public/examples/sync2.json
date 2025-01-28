@@ -1,0 +1,53 @@
+{
+    "type": "sync",
+    "requests": [
+        {
+            "size": 10,
+            "chunks": 10,
+            "delay": 150,
+            "fbd": 400
+        },
+        {
+            "size": 10,
+            "chunks": 10,
+            "delay": 150,
+            "fbd": 200
+        },
+        {
+            "size": 10,
+            "chunks": 10,
+            "delay": 85,
+            "fbd": 600
+        },
+        {
+            "size": 1000,
+            "chunks": 20,
+            "delay": 45,
+            "fbd": 100
+        },
+        {
+            "size": 1000,
+            "chunks": 40,
+            "delay": 45,
+            "fbd": 40
+        },
+        {
+            "size": 1000,
+            "chunks": 80,
+            "delay": 45,
+            "fbd": 500
+        },
+        {
+            "size": 1000,
+            "chunks": 20,
+            "delay": 80,
+            "fbd": 400
+        },
+        {
+            "size": 1000,
+            "chunks": 10,
+            "delay": 60,
+            "fbd": 10
+        }
+    ]
+}
