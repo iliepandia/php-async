@@ -1,4 +1,4 @@
-# Laravel - Guzzle HTTP Client - Async Demo
+# 📃 Laravel - Guzzle HTTP Client - Async Demo
 
 Pretty Laravel CLI demo on how to use Guzzle HTTP Client in async mode.
 
@@ -10,7 +10,7 @@ Pretty Laravel CLI demo on how to use Guzzle HTTP Client in async mode.
 
 ![Sync Demo](imgs/sync.gif)
 
-## How to run
+## ⚡ How to run 
 
 
 Step 1 - Start the built-in web server
@@ -31,7 +31,7 @@ Or
 ./artisan run:sim sync2.json
 ```
 
-## Which one is faster? Sync on Async
+## 🏃‍♂️‍➡️ Which one is faster? Sync on Async 
 
 The visual demo shows the async being way faster than sync, but that is not always the case.
 
@@ -45,16 +45,16 @@ is not easy when dealing with concurrent requests.
 In the end you may be better off using Guzzle sync and relying on the Laravel queue management
 for concurrency. 
 
-## Interesting Bits and Bobs
+## 💡 Interesting Bits and Bobs 
 
-### Writing a slow server web server
+### Writing a slow server web server 🐌
 
 So we can see what is happening I needed a slow web server. 
 `artisan serve` does not allow concurrent requests, so I chose to 
 work with `node` server instead, which has a very simple setup.
 
 
-### Testability 
+### Testability ⌚
 
 In order to test this software I wanted to make sure it runs the same
 way every single time, so if there is a bug, I can repeat the process 
@@ -66,7 +66,7 @@ requests will be served: how big, how slow, and first byte delay.
 
 Using input configuration files makes that easy. 
 
-### Observability - Laravel CLI Animations
+### Observability - Laravel CLI Animations 👁️
 
 Just summarizing the time to completion did not fully show-case the async nature of
 Guzzle HTTP. 
@@ -84,7 +84,7 @@ Thankfully, Laravel already comes with a powerful and flexible CLI management li
 [Symfony Console](https://symfony.com/doc/current/components/console.html)
 
 
-## Config file format
+## 📝 Config file format 
 
 ```json
 {
