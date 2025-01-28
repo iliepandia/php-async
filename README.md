@@ -31,6 +31,20 @@ Or
 ./artisan run:sim sync2.json
 ```
 
+## Which one is faster? Sync on Async
+
+The visual demo shows the async being way faster than sync, but that is not always the case.
+
+Async only works faster if the requests are truly independent of each other and if network 
+wait time is the bottleneck in the application.
+
+Using async requests make the code more complex and handling errors becomes tricky: do you 
+retry the failed requests only? do you cancel the full batch? It depends. But error handling
+is not easy when dealing with concurrent requests.
+
+In the end you may be better off using Guzzle sync and relying on the Laravel queue management
+for concurrency. 
+
 ## Interesting Bits and Bobs
 
 ### Writing a slow server web server
