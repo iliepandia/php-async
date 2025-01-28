@@ -17,7 +17,7 @@ class RunSimulation extends Command
      *
      * @var string
      */
-    protected $signature = 'run:simulation';
+    protected $signature = 'run:simulation {inputJsonFile}';
 
     /**
      * The console command description.
@@ -85,52 +85,8 @@ class RunSimulation extends Command
             'base_uri' => 'http://localhost:9010/'
         ]);
 
-        //ToDo - this will be read from a file
-        $configuration = [
-            'type' => 'async',
-            'requests' => [
-                [
-                    'size' => 10,
-                    'chunks' => 10,
-                    'delay' => 500,
-                    'fbd' => 6_000,
-                ],
-                [
-                    'size' => 20,
-                    'chunks' => 10,
-                    'delay' => 1000,
-                    'fbd' => 5_000,
-                ],
-                [
-                    'size' => 20_000,
-                    'chunks' => 14,
-                    'delay' => 300,
-                    'fbd' => 10_000,
-                ],
-                [
-                    'size' => 3,
-                    'chunks' => 20,
-                    'delay' => 300,
-                ],
-                [
-                    'size' => 3,
-                    'chunks' => 20,
-                    'delay' => 300,
-                    'fbd' => 1_500,
-                ],
-                [
-                    'size' => 30,
-                    'chunks' => 25,
-                    'delay' => 300,
-                ],
-                [
-                    'size' => 30,
-                    'chunks' => 90,
-                    'delay' => 50,
-                    'fbd' => 500,
-                ],
-            ],
-        ];
+        $data = \Storage::disk('public')->get("/examples/" . $this->argument('inputJsonFile') );
+        $configuration = json_decode($data,true);
 
         $terminalDisplay = new MonitorCollectionDisplay($this->output);
 
